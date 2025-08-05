@@ -15,11 +15,18 @@ def evaluate_expression(expr):
     if not tokens:
         raise ValueError("Empty expression")
 
-    total = int(variables.get(tokens[0], tokens[0]))
+    def val(token):
+        if token.isdigit() or (token.startswith('-') and token[1:].isdigit()):
+            return int(token)
+        if token in variables:
+            return variables[token]
+        raise ValueError(f"Undefined variable: {token}")
+
+    total = val(tokens[0])
     i = 1
     while i < len(tokens):
         op = tokens[i]
-        right = int(variables.get(tokens[i+1], tokens[i+1]))
+        right = val(tokens[i + 1])
         if op == '+':
             total += right
         elif op == '-':
@@ -29,28 +36,59 @@ def evaluate_expression(expr):
         i += 2
     return total
 
+def strip_comments(line):
+    while True:
+        start = line.find("//")
+        if start == -1:
+            break
+        end = line.find("//", start + 2)
+        if end == -1:
+            break
+        line = line[:start] + line[end + 2:]
+    return line.strip()
+
 def interpret_easy_line(line):
-    line = line.strip()
+    line = strip_comments(line)
     if not line:
         return
 
-    # let a = 1
+    if line == "letterfromsilsyn()()":
+        print("""
+Dear Easyscript User,
+
+hello, if your reading this, congrats! im probs dead, but my langauge lives on, for those who have made es grow to what it is today, and if you read this, please, incurage your kids to be what i was when i was only 9, a coder, a creator, a dreamer, and most of all, a believer. believe in yourself, and you can do anything.
+— Silent Syntax (Silsyn)
+""")
+        return
+
     if line.startswith("let "):
-        match = re.match(r"let (\w+) = (\w+)", line)
+        match = re.match(r"let (\w+) = (.+)", line)
         if not match:
             raise ValueError(f"Invalid let syntax: {line}")
         var, val = match.groups()
-        variables[var] = int(val)
+        val = val.strip()
+
+        # Is it an integer?
+        if val.isdigit() or (val.startswith('-') and val[1:].isdigit()):
+            variables[var] = int(val)
+        # Is it a quoted string? (Optional to keep)
+        elif (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+            variables[var] = val[1:-1]
+        # Is it an existing variable?
+        elif val in variables:
+            variables[var] = variables[val]
+        # Else treat as string literal (without quotes)
+        else:
+            variables[var] = val
         return
 
-    # print(...)
+
     if line.startswith("print(") and line.endswith(")"):
         expr = line[len("print("):-1].strip()
         result = evaluate_expression(expr)
         print(result)
         return
 
-    # function call: name()
     if re.match(r"^[a-zA-Z_]\w*\(\)$", line):
         func_name = line[:-2]
         if func_name not in functions:
@@ -74,12 +112,10 @@ def run_file(filename):
         while i < len(lines):
             line = lines[i].strip()
 
-            # Skip blank lines
             if not line:
                 i += 1
                 continue
 
-            # Function definition
             if line.startswith("function ") and line.endswith("["):
                 func_name = line[len("function "):-1].strip()
                 i += 1
@@ -94,7 +130,69 @@ def run_file(filename):
                 i += 1
                 continue
 
-            # Normal line
+            if line.startswith("loop"):
+                match = re.match(r"loop\s*(\d*)\[", line)
+                if match is None:
+                    raise ValueError(f"Invalid loop syntax: {line}")
+                count_str = match.group(1)
+                count = int(count_str) if count_str else 100
+
+                i += 1
+                loop_body = []
+                while i < len(lines):
+                    inner = lines[i].strip()
+                    if inner == "]":
+                        break
+                    loop_body.append(inner)
+                    i += 1
+                for _ in range(count):
+                    for loop_line in loop_body:
+                        interpret_easy_line(loop_line)
+                i += 1
+                continue
+
+            if line.startswith("if "):
+                cond_match = re.match(r"if (.+)\[", line)
+                if not cond_match:
+                    raise ValueError(f"Invalid if syntax: {line}")
+                cond_str = cond_match.group(1).strip()
+
+                conds = [c.strip() for c in cond_str.split("&&")]
+
+                def check_condition(cond):
+                    m = re.match(r"(\w+)\s*=\s*(.+)", cond)
+                    if not m:
+                        raise ValueError(f"Invalid condition: {cond}")
+                    var_name, value = m.groups()
+                    var_val = variables.get(var_name)
+
+                    value = value.strip()
+                    if value.isdigit() or (value.startswith('-') and value[1:].isdigit()):
+                        cmp_val = int(value)
+                    elif (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+                        cmp_val = value[1:-1]
+                    else:
+                        cmp_val = variables.get(value, value)
+
+                    return var_val == cmp_val
+
+                all_true = all(check_condition(c) for c in conds)
+
+                i += 1
+                block = []
+                while i < len(lines):
+                    inner = lines[i].strip()
+                    if inner == "]":
+                        break
+                    block.append(inner)
+                    i += 1
+
+                if all_true:
+                    for bline in block:
+                        interpret_easy_line(bline)
+                i += 1
+                continue
+
             interpret_easy_line(line)
             i += 1
 

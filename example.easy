@@ -1,12 +1,21 @@
 let a = 1
 let b = 2
+if a = 1 && b = 2[
 print(a + b)
 print(a)
 print(b)
+]
 
 function iwonder[
  print("i wonder if i will be sued by python for copyright bc i basicly stole there print cmd, or js, i stole the let cmd, but the function one was original!")
 ]
 
+loop 5[
 iwonder()
+]
+
+//if you dont add a number, it defualts to 100//
+
 print("hello easyscript!")
+
+letterfromsilsyn()()
