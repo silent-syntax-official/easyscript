@@ -4,4 +4,4 @@ hello! to use easyscript, create a .easy file  anywhere, like the example one, t
 easyscript (your file name).easy
 ```
 
-in terminal, it will execute it! have fun!
+in terminal, it will execute it! have fun! use esf (your file name).easy to format
