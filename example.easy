@@ -17,5 +17,5 @@ iwonder()
 //if you dont add a number, it defualts to 100//
 
 print("hello easyscript!")
-
+prompt("do you like my langauge?")
 letterfromsilsyn()()
