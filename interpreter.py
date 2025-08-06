@@ -1,13 +1,14 @@
 import sys
 import os
 import re
+import time
 
 variables = {}
 functions = {}
+prompt_counter = 1  # for input1, input2, etc.
 
 def evaluate_expression(expr):
     expr = expr.strip()
-
     if (expr.startswith('"') and expr.endswith('"')) or (expr.startswith("'") and expr.endswith("'")):
         return expr[1:-1]
 
@@ -48,17 +49,42 @@ def strip_comments(line):
     return line.strip()
 
 def interpret_easy_line(line):
+    global prompt_counter
     line = strip_comments(line)
     if not line:
         return
 
-    if line == "letterfromsilsyn()()":
-        print("""
-Dear Easyscript User,
+    if line.startswith("delay(") and line.endswith(")"):
+        try:
+            seconds = float(line[len("delay("):-1].strip())
+            time.sleep(seconds)
+        except ValueError:
+            raise ValueError(f"Invalid delay value: {line}")
+        return
 
-hello, if your reading this, congrats! im probs dead, but my langauge lives on, for those who have made es grow to what it is today, and if you read this, please, incurage your kids to be what i was when i was only 9, a coder, a creator, a dreamer, and most of all, a believer. believe in yourself, and you can do anything.
+    if line == "letterfromsilsyn()()":
+        print("""\nDear Easyscript User,
+
+hello, if you're reading this, congrats! I'm probably dead, but my language lives on. 
+To those who have helped EasyScript grow, thank you. 
+And to you reading this—encourage your kids to be what I was when I was 9: 
+a coder, a creator, a dreamer, and most of all, a believer.
+
+Believe in yourself, and you can do anything.
+
 — Silent Syntax (Silsyn)
 """)
+        return
+
+    if line.startswith("prompt(") and line.endswith(")"):
+        inner = line[len("prompt("):-1].strip()
+        if (inner.startswith('"') and inner.endswith('"')) or (inner.startswith("'") and inner.endswith("'")):
+            prompt_text = inner[1:-1]
+        else:
+            prompt_text = inner
+        response = input(prompt_text)
+        variables[f"input{prompt_counter}"] = response
+        prompt_counter += 1
         return
 
     if line.startswith("let "):
@@ -68,20 +94,15 @@ hello, if your reading this, congrats! im probs dead, but my langauge lives on, 
         var, val = match.groups()
         val = val.strip()
 
-        # Is it an integer?
         if val.isdigit() or (val.startswith('-') and val[1:].isdigit()):
             variables[var] = int(val)
-        # Is it a quoted string? (Optional to keep)
         elif (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
             variables[var] = val[1:-1]
-        # Is it an existing variable?
         elif val in variables:
             variables[var] = variables[val]
-        # Else treat as string literal (without quotes)
         else:
             variables[var] = val
         return
-
 
     if line.startswith("print(") and line.endswith(")"):
         expr = line[len("print("):-1].strip()
@@ -111,7 +132,6 @@ def run_file(filename):
         i = 0
         while i < len(lines):
             line = lines[i].strip()
-
             if not line:
                 i += 1
                 continue
@@ -156,7 +176,6 @@ def run_file(filename):
                 if not cond_match:
                     raise ValueError(f"Invalid if syntax: {line}")
                 cond_str = cond_match.group(1).strip()
-
                 conds = [c.strip() for c in cond_str.split("&&")]
 
                 def check_condition(cond):
