@@ -15,7 +15,15 @@ iwonder()
 ]
 
 //if you dont add a number, it defualts to 100//
-
+//you can execute a py file with runpyfile(path)//
 print("hello easyscript!")
 prompt("do you like my langauge?")
-letterfromsilsyn()()
+if input1 = yes[
+ print("good! glad you like it")
+]
+if input1 = no[
+ print("...")
+ delay(3)
+ print("crap")
+]
+//letterfromsilsyn()()//

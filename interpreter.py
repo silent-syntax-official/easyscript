@@ -2,6 +2,9 @@ import sys
 import os
 import re
 import time
+import subprocess
+import json
+import tempfile
 
 variables = {}
 functions = {}
@@ -53,6 +56,36 @@ def interpret_easy_line(line):
     line = strip_comments(line)
     if not line:
         return
+
+    # --- runpyfile with shared vars ---
+    if line.startswith("runpyfile(") and line.endswith(")"):
+        py_path = line[len("runpyfile("):-1].strip().strip('"').strip("'")
+        if not os.path.isfile(py_path):
+            print(f"[EasyScript ERROR] Python file not found: {py_path}")
+            return
+        
+        # Save current EasyScript variables to temp file
+        temp_json = os.path.join(tempfile.gettempdir(), "easyscript_vars.json")
+        with open(temp_json, "w") as f:
+            json.dump(variables, f)
+
+        try:
+            # Run the Python file with the path to the temp vars file
+            subprocess.run(["python", py_path, temp_json], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"[EasyScript ERROR] Python script failed with exit code {e.returncode}")
+            return
+
+        # Reload variables after Python finishes
+        if os.path.exists(temp_json):
+            with open(temp_json, "r") as f:
+                try:
+                    loaded_vars = json.load(f)
+                    variables.update(loaded_vars)
+                except json.JSONDecodeError:
+                    print("[EasyScript ERROR] Could not read variables from Python output.")
+        return
+    # ----------------------------------
 
     if line.startswith("delay(") and line.endswith(")"):
         try:
